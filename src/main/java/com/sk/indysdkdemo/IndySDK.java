@@ -17,8 +17,9 @@ public class IndySDK {
         json.put("id", walletName);
 
         String issuerWalletConfig = json.toString();
+        String currentDirectory = System.getProperty("user.dir");
 
-        File f = new File("/Users/chaeso/dev/indy-sdk/libindy/target/debug/libindy.dylib");
+        File f = new File(System.getProperty("user.dir") + "/src/lib/macos/libindy.dylib");
         LibIndy.init(f);
 
         try {
