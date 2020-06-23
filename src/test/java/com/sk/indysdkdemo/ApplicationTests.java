@@ -1,4 +1,4 @@
-package com.sk.demo.indysdk.demo;
+package com.sk.indysdkdemo;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
