@@ -30,7 +30,7 @@ public class CryptoExample {
     private interface DecryptService {
         @FormUrlEncoded
         @POST("action/SymmetricDecrypt")
-        Call<ReqResult> encrypt(@Field("label") String label,
+        Call<ReqResult> decrypt(@Field("label") String label,
                                 @Field("class") String cls,
                                 @Field("msg") String msg);
     }
@@ -46,6 +46,7 @@ public class CryptoExample {
 
         @SuppressWarnings({ "unused", "unchecked" })
         public String callback(int xcommand_handle, String msg, int l, IntByReference resultLen) throws IOException {
+            System.out.println("[before encryption] ======> " + msg);
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl("http://127.0.0.1:7999/")
                     .addConverterFactory(GsonConverterFactory.create())
@@ -69,7 +70,7 @@ public class CryptoExample {
                     .build();
             DecryptService service = retrofit.create(DecryptService.class);
 
-            String result = service.encrypt("PAULAES", "CKO_SECRET_KEY", msg).execute().body().result;
+            String result = service.decrypt("PAULAES", "CKO_SECRET_KEY", msg).execute().body().result;
             System.out.println("result = " + result);
             resultLen.setValue(result.length());
             return result;
