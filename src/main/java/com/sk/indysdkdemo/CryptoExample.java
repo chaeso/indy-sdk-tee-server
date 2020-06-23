@@ -2,7 +2,6 @@ package com.sk.indysdkdemo;
 
 import com.sun.jna.Callback;
 import com.sun.jna.ptr.IntByReference;
-import org.hyperledger.indy.sdk.crypto.Crypto;
 import retrofit2.Call;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -13,6 +12,8 @@ import retrofit2.http.POST;
 import java.io.IOException;
 
 public class CryptoExample {
+
+    final static String softHSMServerBaseUrl = "http://127.0.0.1:7999";
 
     private class ReqResult {
         String result;
@@ -42,16 +43,20 @@ public class CryptoExample {
         }
     };
 
+    private static Retrofit newRetrofitInstance() {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(softHSMServerBaseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        return retrofit;
+    }
+
     public static Callback encryptCb = new Callback() {
 
         @SuppressWarnings({ "unused", "unchecked" })
         public String callback(int xcommand_handle, String msg, int l, IntByReference resultLen) throws IOException {
             System.out.println("[before encryption] ======> " + msg);
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl("http://127.0.0.1:7999/")
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
-            EncryptService service = retrofit.create(EncryptService.class);
+            EncryptService service = newRetrofitInstance().create(EncryptService.class);
 
             String result = service.encrypt("PAULAES", "CKO_SECRET_KEY", msg).execute().body().result;
             System.out.println("result = " + result);
@@ -64,11 +69,7 @@ public class CryptoExample {
 
         @SuppressWarnings({ "unused", "unchecked" })
         public String callback(int xcommand_handle, String msg, int l, IntByReference resultLen) throws IOException {
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl("http://127.0.0.1:7999/")
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
-            DecryptService service = retrofit.create(DecryptService.class);
+            DecryptService service = newRetrofitInstance().create(DecryptService.class);
 
             String result = service.decrypt("PAULAES", "CKO_SECRET_KEY", msg).execute().body().result;
             System.out.println("result = " + result);
