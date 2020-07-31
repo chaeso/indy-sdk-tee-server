@@ -75,6 +75,13 @@
 			<version>2.3</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.zeromq</groupId>
+			<artifactId>jeromq</artifactId>
+			<version>0.5.2</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

@@ -2,12 +2,11 @@ package com.sk.indysdkdemo;
 
 import com.sun.jna.Callback;
 import com.sun.jna.ptr.IntByReference;
-import retrofit2.Call;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-import retrofit2.http.Field;
-import retrofit2.http.FormUrlEncoded;
-import retrofit2.http.POST;
+import org.zeromq.SocketType;
+import org.zeromq.ZAuth;
+import org.zeromq.ZContext;
+import org.zeromq.ZMQ;
+import zmq.io.mechanism.curve.Curve;
 
 import java.io.IOException;
 
@@ -20,22 +19,6 @@ public class CryptoExample {
         String status;
     }
 
-    private interface EncryptService {
-        @FormUrlEncoded
-        @POST("action/SymmetricEncrypt")
-        Call<ReqResult> encrypt(@Field("label") String label,
-                                  @Field("class") String cls,
-                                  @Field("msg") String msg);
-    }
-
-    private interface DecryptService {
-        @FormUrlEncoded
-        @POST("action/SymmetricDecrypt")
-        Call<ReqResult> decrypt(@Field("label") String label,
-                                @Field("class") String cls,
-                                @Field("msg") String msg);
-    }
-
     public static Callback keyGenCb = new Callback() {
 
         @SuppressWarnings({ "unused", "unchecked" })
@@ -43,12 +26,20 @@ public class CryptoExample {
         }
     };
 
-    private static Retrofit newRetrofitInstance() {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(softHSMServerBaseUrl)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        return retrofit;
+    public CryptoExample() {
+        ZContext context = new ZContext();
+        ZAuth auth=new ZAuth(context);
+
+        ZMQ.Socket client = context.createSocket(SocketType.REQ);
+        Curve curve = new Curve();
+        String[] clientKeys = curve.keypairZ85();
+
+        client.setCurvePublicKey(clientKeys[0].getBytes());
+        client.setCurveSecretKey(clientKeys[1].getBytes());
+
+        // 주의 : 아래 키는 defensiveMatrix 에서 생성한 public key 를 가져와 써야 한다.
+        client.setCurveServerKey("t}^YcgLp]lSg5d2PfIj@MfN>T0&HTK:>nsT[nwb8".getBytes());
+        client.connect("tcp://127.0.0.1:7000");
     }
 
     public static Callback encryptCb = new Callback() {
@@ -56,9 +47,24 @@ public class CryptoExample {
         @SuppressWarnings({ "unused", "unchecked" })
         public String callback(int xcommand_handle, String msg, int l, IntByReference resultLen) throws IOException {
             System.out.println("[before encryption] ======> " + msg);
-            EncryptService service = newRetrofitInstance().create(EncryptService.class);
+            String result = "";
 
-            String result = service.encrypt("PAULAES", "CKO_SECRET_KEY", msg).execute().body().result;
+            try (ZContext context = new ZContext(); ZAuth auth=new ZAuth(context)) {
+                ZMQ.Socket client = context.createSocket(SocketType.REQ);
+                Curve curve = new Curve();
+                String[] clientKeys = curve.keypairZ85();
+
+                client.setCurvePublicKey(clientKeys[0].getBytes());
+                client.setCurveSecretKey(clientKeys[1].getBytes());
+                // 주의 : 아래 키는 defensiveMatrix 에서 생성한 public key 를 가져와 써야 한다.
+                client.setCurveServerKey("t}^YcgLp]lSg5d2PfIj@MfN>T0&HTK:>nsT[nwb8".getBytes());
+                client.connect("tcp://127.0.0.1:7000");
+
+                boolean send = client.send("{\"action\":\"encrypt\", \"msg\":\""+msg+"\"}");
+                byte[] recv = client.recv();
+                result = recv.toString();
+            }
+
             System.out.println("result = " + result);
             resultLen.setValue(result.length());
             return result;
@@ -69,9 +75,23 @@ public class CryptoExample {
 
         @SuppressWarnings({ "unused", "unchecked" })
         public String callback(int xcommand_handle, String msg, int l, IntByReference resultLen) throws IOException {
-            DecryptService service = newRetrofitInstance().create(DecryptService.class);
+            String result = "";
 
-            String result = service.decrypt("PAULAES", "CKO_SECRET_KEY", msg).execute().body().result;
+            try (ZContext context = new ZContext(); ZAuth auth=new ZAuth(context)) {
+                ZMQ.Socket client = context.createSocket(SocketType.REQ);
+                Curve curve = new Curve();
+                String[] clientKeys = curve.keypairZ85();
+
+                client.setCurvePublicKey(clientKeys[0].getBytes());
+                client.setCurveSecretKey(clientKeys[1].getBytes());
+                // 주의 : 아래 키는 defensiveMatrix 에서 생성한 public key 를 가져와 써야 한다.
+                client.setCurveServerKey("t}^YcgLp]lSg5d2PfIj@MfN>T0&HTK:>nsT[nwb8".getBytes());
+                client.connect("tcp://127.0.0.1:7000");
+
+                boolean send = client.send("{\"action\":\"decrypt\", \"msg\":\""+msg+"\"}");
+                byte[] recv = client.recv();
+                result = recv.toString();
+            }
             System.out.println("result = " + result);
             resultLen.setValue(result.length());
             return result;
